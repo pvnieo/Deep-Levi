@@ -16,7 +16,7 @@ from keras.preprocessing.image import ImageDataGenerator, array_to_img, img_to_a
 
 PATH_TO_TRAIN = "datasets/mit_opencountry_dataset/train/"
 PATH_TO_TEST = "datasets/mit_opencountry_dataset/test/"
-BATCH_SIZE = 10
+BATCH_SIZE = 32
 EPOCHS = 200
 
 # Load images (train + test)
@@ -26,6 +26,8 @@ test_set = np.array([img_to_array(load_img(PATH_TO_TEST  + x)) for x in os.listd
 #set 8-bit images
 train_set = 1.0/255 * train_set
 test_set = 1.0/255 * test_set
+
+STEPS_PER_EPOCHS = floor(len(train_set) / BATCH_SIZE)
 
 # Definiton of NN
 model = Sequential()
@@ -64,7 +66,7 @@ def image_a_b_gen(batch_size):
 
 # Train model      
 tensorboard = TensorBoard(log_dir="output/beta_run")
-model.fit_generator(image_a_b_gen(BATCH_SIZE), callbacks=[tensorboard], epochs=EPOCHS, steps_per_epoch=1)
+model.fit_generator(image_a_b_gen(BATCH_SIZE), callbacks=[tensorboard], epochs=EPOCHS, steps_per_epoch=STEPS_PER_EPOCHS)
 
 # Save model
 model_json = model.to_json()
