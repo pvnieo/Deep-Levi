@@ -17,7 +17,7 @@ from keras.preprocessing.image import ImageDataGenerator, array_to_img, img_to_a
 PATH_TO_TRAIN = "datasets/mit_opencountry_dataset/train1/"
 PATH_TO_TEST = "datasets/mit_opencountry_dataset/test1/"
 BATCH_SIZE = 10
-EPOCHS = 12
+EPOCHS = 1000
 
 # Load images (train + test)
 train_set = np.array([img_to_array(load_img(PATH_TO_TRAIN  + x)) for x in os.listdir(PATH_TO_TRAIN)], dtype=float)
