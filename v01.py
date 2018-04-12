@@ -94,5 +94,5 @@ for i in range(len(output)):
   cur[:,:,0] = color_me[i][:,:,0]
   st = cur
   cur[:,:,1:] = output[i]
-  imsave("result/img_"+str(i)+".png", lab2rgb(cur))
-  imsave("result/img_bw"+str(i)+".png", rgb2gray(lab2rgb(cur)))
+  imsave("results/img_"+str(i)+".png", lab2rgb(cur))
+  imsave("results/img_bw"+str(i)+".png", rgb2gray(lab2rgb(cur)))
