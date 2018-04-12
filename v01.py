@@ -14,10 +14,10 @@ from keras.layers import Activation, InputLayer
 from keras.callbacks import TensorBoard
 from keras.preprocessing.image import ImageDataGenerator, array_to_img, img_to_array, load_img
 
-PATH_TO_TRAIN = "datasets/mit_opencountry_dataset/train1/"
-PATH_TO_TEST = "datasets/mit_opencountry_dataset/test1/"
+PATH_TO_TRAIN = "datasets/mit_opencountry_dataset/train/"
+PATH_TO_TEST = "datasets/mit_opencountry_dataset/test/"
 BATCH_SIZE = 10
-EPOCHS = 1000
+EPOCHS = 20
 
 # Load images (train + test)
 train_set = np.array([img_to_array(load_img(PATH_TO_TRAIN  + x)) for x in os.listdir(PATH_TO_TRAIN)], dtype=float)
@@ -81,7 +81,7 @@ Ytest = Ytest / 128
 print(model.evaluate(Xtest, Ytest, batch_size=BATCH_SIZE))
 
 # Let's color some images
-TO_COLOR = 10
+TO_COLOR = 30
 color_me = rgb2lab(test_set)[0:TO_COLOR,:,:,0]
 color_me = color_me.reshape(color_me.shape+(1,))
 
@@ -95,4 +95,3 @@ for i in range(len(output)):
   st = cur
   cur[:,:,1:] = output[i]
   imsave("results/img_"+str(i)+".png", lab2rgb(cur))
-  imsave("results/img_bw"+str(i)+".png", rgb2gray(lab2rgb(cur)))
