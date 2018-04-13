@@ -79,8 +79,8 @@ Xtest = rgb2lab(test_set)[:,:,:,0]
 Xtest = Xtest.reshape(Xtest.shape+(1,))
 Ytest = rgb2lab(test_set)[:,:,:,1:]
 Ytest = Ytest / 128
-# Printing result
-print(model.evaluate(Xtest, Ytest, batch_size=BATCH_SIZE))
+# Printing generalisation loss
+print("====> Generalisation loss: " + model.evaluate(Xtest, Ytest, batch_size=BATCH_SIZE))
 
 # Let's color some images
 TO_COLOR = 30
