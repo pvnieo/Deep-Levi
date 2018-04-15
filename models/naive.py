@@ -10,15 +10,17 @@ from keras import optimizers
 
 class Naive:
 
-  def __init__(self, optimizer='adam', loss='mse'):
+  def __init__(self, load, optimizer='adam', loss='mse'):
+    self.load_saved = load
     self.optimizer = optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
     self.loss = loss
     self.callbacks = []
     self.name = "naive"
+    self.input_type = "reg"
     self.model = Sequential()
 
     # Define model
-    if is_model_saved(self.name):
+    if is_model_saved(self.name) and self.load_saved:
       self.model = load_model(self.name)
       print("Model Loaded!")
 

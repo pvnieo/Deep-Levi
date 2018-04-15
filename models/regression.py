@@ -14,15 +14,17 @@ from keras import optimizers
 
 class Regression:
 
-  def __init__(self, optimizer='adam', loss='mse'):
+  def __init__(self, load, optimizer='adam', loss='mse'):
+    self.load_saved = load
     # We used the recommended parameters
     self.optimizer = optimizers.Adadelta(lr=1.0, rho=0.95, epsilon=None, decay=0.0)
     self.loss = loss
     self.callbacks = []
     self.name = "regression"
+    self.input_type = "reg"
 
     # Define model
-    if is_model_saved(self.name):
+    if is_model_saved(self.name) and self.load_saved:
       self.model = load_model(self.name)
       print("Model Loaded!")
 
@@ -36,7 +38,6 @@ class Regression:
       x = BatchNormalization()(x)
       ## Layer 2
       x = Conv2D(128, (3,3), strides=(1,1), activation='relu', padding='same', name='conv_2')(x)
-      print("x", x.shape)
       x = BatchNormalization()(x)
       ## Layer 3
       x = Conv2D(128, (3,3), strides=(2,2), activation='relu', padding='same', name='conv_3')(x)
@@ -87,28 +88,15 @@ class Regression:
       z = BatchNormalization()(z)
 
       # Fusion Layer
-      # y = RepeatVector(32)(y)
-      y = RepeatLayer(13515)(y)
-      print("y", y.shape)
-      # y = RepeatVector(32)(y)
-      # y = K.expand_dims(y, axis=1)
-      # y = K.repeat_elements(y, rep=32, axis=1)
-      # y = K.expand_dims(y, axis=2)
-      # y = K.repeat_elements(y, rep=32, axis=2)
-      print("y", y.shape)
-      print(y.shape, "tabon mok a salah", z.shape)
+      y = RepeatLayer(32)(y)
       f = Concatenate()([y, z])
-      print("hadi f", f.shape)
-
       f = FusionLayer(256)(f)
       f = Activation("relu")(f)
 
       # Colorization network
 
       ## Layer 17
-      print("after fusion", f.shape)
       c = Conv2D(128, (3,3), strides=(1,1), activation='relu', padding='same', name='conv_13')(f)
-      print("c", c.shape)
       c = BatchNormalization()(c)
       ## Layer 18
       c = UpSampling2D(size=(2, 2))(c)
@@ -126,7 +114,6 @@ class Regression:
       ## Output Layer
       c = Conv2D(2, (3,3), strides=(1,1), activation='sigmoid', padding='same', name='conv_17')(c)
       output = UpSampling2D(size=(2, 2))(c)
-      print("salina")
 
       self.model = Model(input_image, output)
 
@@ -142,8 +129,7 @@ class FusionLayer(Layer):
         super(FusionLayer, self).__init__(**kwargs)
 
     def build(self, input_shape):
-        # Create a trainable weight variable for this layer.
-        print("build,", input_shape)
+        # Create a trainable weights variables for this layer.
         self.kernel = self.add_weight(name='kernel', 
                                       shape=(input_shape[-1], self.output_dim),
                                       initializer='uniform',
@@ -152,23 +138,18 @@ class FusionLayer(Layer):
                                       shape=(256,),
                                       initializer='uniform',
                                       trainable=True)
-        super(FusionLayer, self).build(input_shape)  # Be sure to call this somewhere!
+        super(FusionLayer, self).build(input_shape)
 
     def call(self, x):
-        print("men layeer", x.shape, self.kernel.shape)
         self.bias = K.expand_dims(self.bias, axis=1)
         self.bias = K.repeat_elements(self.bias, rep=32, axis=1)
         self.bias = K.expand_dims(self.bias, axis=2)
         self.bias = K.repeat_elements(self.bias, rep=32, axis=2)
         self.bias = K.permute_dimensions(self.bias, (2,1,0))
-        print("bias jdid", self.bias.shape)
         fusion = K.dot(x, self.kernel) + self.bias
-        print("taniyane", fusion.shape)
         return fusion
 
     def compute_output_shape(self, input_shape):
-        output_di = input_shape[1:-1] + (256,)
-        # return (input_shape, output_di)
         return (None, 32,32,256)
 
 
@@ -179,8 +160,7 @@ class RepeatLayer(Layer):
         super(RepeatLayer, self).__init__(**kwargs)
 
     def build(self, input_shape):
-        # Create a trainable weight variable for this layer.
-        super(RepeatLayer, self).build(input_shape)  # Be sure to call this somewhere!
+        super(RepeatLayer, self).build(input_shape)
 
     def call(self, x):
         y = K.expand_dims(x, axis=1)

@@ -1,11 +1,13 @@
 import os, os.path
 from time import time
+import numpy as np
 import tensorflow as tf
 import numpy as np
 from keras import losses
 from keras.models import model_from_json
 from keras.preprocessing.image import ImageDataGenerator, array_to_img, img_to_array, load_img
 from keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard, LearningRateScheduler
+from keras.utils import to_categorical as tc
 from skimage.color import rgb2lab, lab2rgb, rgb2gray
 from skimage.io import imsave
 
@@ -43,7 +45,7 @@ def load_data(directory):
   test_set = 1.0/255 * test_set
   return train_set, test_set
 
-def train_generator(train_set, batch_size, split):
+def train_generator(train_set, batch_size, split, input_type):
   # Data augumentation generator
   datagen = ImageDataGenerator(
           shear_range=0.2,
@@ -53,25 +55,40 @@ def train_generator(train_set, batch_size, split):
   for batch in datagen.flow(train_set[:split], batch_size=batch_size):
       lab_batch = rgb2lab(batch)
       X_batch = lab_batch[:,:,:,0]
-      # Y_batch = lab_batch[:,:,:,1:] / 128
       Y_batch = normalize_lab(lab_batch[:,:,:,1:])
+      if input_type = "cls":
+        X_batch = np.expand_dims(X_batch, axis=-1)
+        X_batch = np.repeat(X_batch, axis=-1, repeats=3)
+        Y_batch_1 = tc(Y_batch[:,:,:,0], num_classes=64)
+        Y_batch_2 = tc(Y_batch[:,:,:,1], num_classes=64)
+        Y_batch = np.concatenate((Y_batch_1, Y_batch_2),axis=0)
       yield (X_batch.reshape(X_batch.shape+(1,)), Y_batch)
 
-def valid_generator(train_set, batch_size, split):
+def valid_generator(train_set, batch_size, split, input_type):
   datagen = ImageDataGenerator()
   for batch in datagen.flow(train_set[split:], batch_size=batch_size):
       lab_batch = rgb2lab(batch)
       X_batch = lab_batch[:,:,:,0]
-      # Y_batch = lab_batch[:,:,:,1:] / 128
       Y_batch = normalize_lab(lab_batch[:,:,:,1:])
+      if input_type = "cls":
+        X_batch = np.expand_dims(X_batch, axis=-1)
+        X_batch = np.repeat(X_batch, axis=-1, repeats=3)
+        Y_batch_1 = tc(Y_batch[:,:,:,0], num_classes=64)
+        Y_batch_2 = tc(Y_batch[:,:,:,1], num_classes=64)
+        Y_batch = np.concatenate((Y_batch_1, Y_batch_2),axis=0)
       yield (X_batch.reshape(X_batch.shape+(1,)), Y_batch)
 
 def get_test_data(test_set):
   Xtest = rgb2lab(test_set)[:,:,:,0]
-  Xtest = Xtest.reshape(Xtest.shape+(1,))
   Ytest = rgb2lab(test_set)[:,:,:,1:]
-  # Ytest = Ytest / 128
-  Y_batch = normalize_lab(Ytest)
+  Ytest = normalize_lab(Ytest)
+  if input_type = "cls":
+    Xtest = np.expand_dims(Xtest, axis=-1)
+    Xtest = np.repeat(Xtest, axis=-1, repeats=3)
+    Y_batch_1 = tc(Ytest[:,:,:,0], num_classes=64)
+    Y_batch_2 = tc(Ytest[:,:,:,1], num_classes=64)
+    Ytest = np.concatenate((Y_batch_1, Y_batch_2),axis=0)
+  Xtest = Xtest.reshape(Xtest.shape+(1,))
   return Xtest, Ytest
 
 def save_colored_samples(model, test_set, to_color, epochs, batch_size):
@@ -107,8 +124,8 @@ def save_colored_samples(model, test_set, to_color, epochs, batch_size):
     # Write images
     cur[:,:,0] = grey_scale
     gt[:,:,0] = grey_scale
-    cur[:,:,1:2] = np.clip(ab_predicted[:,:,0], -127, 127)
-    cur[:,:,2:] = np.clip(ab_predicted[:,:,1], -127, 127)
+    cur[:,:,1:2] = np.clip(ab_predicted[:,:,0], -127, 128)
+    cur[:,:,2:] = np.clip(ab_predicted[:,:,1], -128, 127)
     gt[:,:,1:] = ab_gt
     bw = grey_scale / 100
     imsave("{}/Gbw{}_{}e_{}bz.png".format(directory, str(i), epochs, batch_size), bw)
