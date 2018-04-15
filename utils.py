@@ -1,8 +1,12 @@
 import os, os.path
 from time import time
+import tensorflow as tf
+import numpy as np
+from keras import losses
 from keras.models import model_from_json
 from keras.preprocessing.image import ImageDataGenerator, array_to_img, img_to_array, load_img
 from keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard, LearningRateScheduler
+from skimage.color import rgb2lab, lab2rgb, rgb2gray
 from skimage.io import imsave
 
 # ==================> Saving and Loading models <==================
@@ -21,10 +25,11 @@ def load_model(name):
   return model
 
 def save_model(model):
+    root = "saved_models/" + model.name
     model_json = model.model.to_json()
-    with open(model.name + ".json", "w") as json_file:
+    with open(root + ".json", "w") as json_file:
         json_file.write(model_json)
-    model.model.save_weights(model.name + ".h5")
+    model.model.save_weights(root + ".h5")
 
 # ==================> Data processing <==================
 def load_data(directory):
@@ -38,14 +43,22 @@ def load_data(directory):
   test_set = 1.0/255 * test_set
   return train_set, test_set
 
-def image_a_b_gen(train_set, batch_size):
+def train_generator(train_set, batch_size, split):
   # Data augumentation generator
   datagen = ImageDataGenerator(
           shear_range=0.2,
           zoom_range=0.2,
           rotation_range=20,
           horizontal_flip=True)
-  for batch in datagen.flow(train_set, batch_size=batch_size):
+  for batch in datagen.flow(train_set[:split], batch_size=batch_size):
+      lab_batch = rgb2lab(batch)
+      X_batch = lab_batch[:,:,:,0]
+      Y_batch = lab_batch[:,:,:,1:] / 128
+      yield (X_batch.reshape(X_batch.shape+(1,)), Y_batch)
+
+def valid_generator(train_set, batch_size, split):
+  datagen = ImageDataGenerator()
+  for batch in datagen.flow(train_set[split:], batch_size=batch_size):
       lab_batch = rgb2lab(batch)
       X_batch = lab_batch[:,:,:,0]
       Y_batch = lab_batch[:,:,:,1:] / 128
@@ -58,29 +71,55 @@ def get_test_data(test_set):
   Ytest = Ytest / 128
   return Xtest, Ytest
 
-def save_colored_samples(model, test_set, to_color, name):
+def save_colored_samples(model, test_set, to_color, epochs, batch_size):
   color_me = rgb2lab(test_set)[:,:,:,0]
   color_me = color_me.reshape(color_me.shape+(1,))
 
-  output = model.predict(color_me)
+  ground_truth = rgb2lab(test_set)[:,:,:,1:]
+  ground_truth = ground_truth.reshape(ground_truth.shape+(1,))
+
+  output = model.model.predict(color_me)
   output = output * 128
+  output = output.reshape(output.shape+(1,))
+  # Take the N first good colorization
+  zipped = list(zip(color_me, ground_truth, output)) # [(bw, gt, output)]
+  to_be_saved = sorted(zipped, key=lambda x: np.sum(tf.keras.backend.eval(losses.mean_squared_error(x[1],x[2]))))[:to_color]
 
   # Save Output colorizations
-  for i in range(len(output)):
+  # Check if directory exists
+  directory = 'color_me/' + model.name + '/{}e_{}bz'.format(epochs, batch_size)
+  if not os.path.exists(directory):
+      os.makedirs(directory)
+  # Save!
+  for i in range(len(to_be_saved)):
+    # Initialization
     cur = np.zeros((256, 256, 3))
-    cur[:,:,0] = color_me[i][:,:,0]
-    st = cur
-    cur[:,:,1:] = output[i]
-    # TODO: Model saving image + create folder for each model, and each attempt
-    imsave("color_me/{}_{}e_{}bz"+str(i)+".png", lab2rgb(cur))
+    gt = np.zeros((256, 256, 3))
+    # Get ride of add dim added for Keras input
+    grey_scale = get_ride_of_additionnal_dim(to_be_saved[i][0])
+    ab_gt = get_ride_of_additionnal_dim(to_be_saved[i][1])
+    ab_predicted = to_be_saved[i][2]
+    # Write images
+    cur[:,:,0] = grey_scale
+    gt[:,:,0] = grey_scale
+    cur[:,:,1:2] = np.clip(ab_predicted[:,:,0], -127, 127)
+    cur[:,:,2:] = np.clip(ab_predicted[:,:,1], -127, 127)
+    gt[:,:,1:] = ab_gt
+    bw = grey_scale / 100
+    imsave("{}/bw{}_{}e_{}bz.png".format(directory, str(i), epochs, batch_size), bw)
+    imsave("{}/gt{}_{}e_{}bz.png".format(directory, str(i), epochs, batch_size), lab2rgb(gt))
+    imsave("{}/pred{}_{}e_{}bz.png".format(directory, str(i), epochs, batch_size), lab2rgb(cur))
 
+def get_ride_of_additionnal_dim(l):
+  l = np.array(l)
+  return np.squeeze(l, axis=len(l.shape)-1)
 
 # ==================> Callbacks <==================
 def checkpoint_callback(name):
   weights = "saved_models/" + name + ".h5"
   checkpoint = ModelCheckpoint(weights, 
                                monitor='val_loss', 
-                               verbose=1, 
+                               verbose=0, 
                                save_best_only=True, 
                                save_weights_only=True, 
                                mode='min', 
@@ -108,4 +147,10 @@ def tensorboard_callback(name):
   return tensorboard
 
 def learningratescheduler_callback():
+  def triang1(e, lr):
+    max_lr = ma
+    min_lr = mi
+
   pass
+  return LearningRateScheduler(triang1, verbose=0)
+
