@@ -38,7 +38,7 @@ class Naive:
       self.model.add(Conv2D(64, (3, 3), activation='relu', padding='same'))
       self.model.add(UpSampling2D((2, 2)))
       self.model.add(Conv2D(32, (3, 3), activation='relu', padding='same'))
-      self.model.add(Conv2D(2, (3, 3), activation='tanh', padding='same'))
+      self.model.add(Conv2D(2, (3, 3), activation='sigmoid', padding='same'))
       self.model.add(UpSampling2D((2, 2)))
 
     self.model.compile(optimizer=self.optimizer, loss=self.loss)

@@ -53,7 +53,7 @@ if __name__ == '__main__':
                                       validation_steps = STEPS_PER_EPOCHS_VALID, 
                                       epochs=EPOCHS)
   
-  print(history.history)
+  # print(history.history)
 
   # Save model
   utils.save_model(selected_model)

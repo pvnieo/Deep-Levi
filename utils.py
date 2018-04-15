@@ -53,7 +53,8 @@ def train_generator(train_set, batch_size, split):
   for batch in datagen.flow(train_set[:split], batch_size=batch_size):
       lab_batch = rgb2lab(batch)
       X_batch = lab_batch[:,:,:,0]
-      Y_batch = lab_batch[:,:,:,1:] / 128
+      # Y_batch = lab_batch[:,:,:,1:] / 128
+      Y_batch = normalize_lab(lab_batch[:,:,:,1:])
       yield (X_batch.reshape(X_batch.shape+(1,)), Y_batch)
 
 def valid_generator(train_set, batch_size, split):
@@ -61,14 +62,16 @@ def valid_generator(train_set, batch_size, split):
   for batch in datagen.flow(train_set[split:], batch_size=batch_size):
       lab_batch = rgb2lab(batch)
       X_batch = lab_batch[:,:,:,0]
-      Y_batch = lab_batch[:,:,:,1:] / 128
+      # Y_batch = lab_batch[:,:,:,1:] / 128
+      Y_batch = normalize_lab(lab_batch[:,:,:,1:])
       yield (X_batch.reshape(X_batch.shape+(1,)), Y_batch)
 
 def get_test_data(test_set):
   Xtest = rgb2lab(test_set)[:,:,:,0]
   Xtest = Xtest.reshape(Xtest.shape+(1,))
   Ytest = rgb2lab(test_set)[:,:,:,1:]
-  Ytest = Ytest / 128
+  # Ytest = Ytest / 128
+  Y_batch = normalize_lab(Ytest)
   return Xtest, Ytest
 
 def save_colored_samples(model, test_set, to_color, epochs, batch_size):
@@ -79,11 +82,13 @@ def save_colored_samples(model, test_set, to_color, epochs, batch_size):
   ground_truth = ground_truth.reshape(ground_truth.shape+(1,))
 
   output = model.model.predict(color_me)
-  output = output * 128
+  # output = output * 128
+  output = denormalize_lab(output)
   output = output.reshape(output.shape+(1,))
   # Take the N first good colorization
   zipped = list(zip(color_me, ground_truth, output)) # [(bw, gt, output)]
   to_be_saved = sorted(zipped, key=lambda x: np.sum(tf.keras.backend.eval(losses.mean_squared_error(x[1],x[2]))))[:to_color]
+  to_be_saved_bad = sorted(zipped, key=lambda x: np.sum(tf.keras.backend.eval(losses.mean_squared_error(x[1],x[2]))))[-to_color:]
 
   # Save Output colorizations
   # Check if directory exists
@@ -106,13 +111,45 @@ def save_colored_samples(model, test_set, to_color, epochs, batch_size):
     cur[:,:,2:] = np.clip(ab_predicted[:,:,1], -127, 127)
     gt[:,:,1:] = ab_gt
     bw = grey_scale / 100
-    imsave("{}/bw{}_{}e_{}bz.png".format(directory, str(i), epochs, batch_size), bw)
-    imsave("{}/gt{}_{}e_{}bz.png".format(directory, str(i), epochs, batch_size), lab2rgb(gt))
-    imsave("{}/pred{}_{}e_{}bz.png".format(directory, str(i), epochs, batch_size), lab2rgb(cur))
+    imsave("{}/Gbw{}_{}e_{}bz.png".format(directory, str(i), epochs, batch_size), bw)
+    imsave("{}/Ggt{}_{}e_{}bz.png".format(directory, str(i), epochs, batch_size), lab2rgb(gt))
+    imsave("{}/Gpred{}_{}e_{}bz.png".format(directory, str(i), epochs, batch_size), lab2rgb(cur))
+
+  for i in range(len(to_be_saved_bad)):
+    # Initialization
+    cur = np.zeros((256, 256, 3))
+    gt = np.zeros((256, 256, 3))
+    # Get ride of add dim added for Keras input
+    grey_scale = get_ride_of_additionnal_dim(to_be_saved_bad[i][0])
+    ab_gt = get_ride_of_additionnal_dim(to_be_saved_bad[i][1])
+    ab_predicted = to_be_saved_bad[i][2]
+    # Write images
+    cur[:,:,0] = grey_scale
+    gt[:,:,0] = grey_scale
+    cur[:,:,1:2] = np.clip(ab_predicted[:,:,0], -127, 127)
+    cur[:,:,2:] = np.clip(ab_predicted[:,:,1], -127, 127)
+    gt[:,:,1:] = ab_gt
+    bw = grey_scale / 100
+    imsave("{}/Bbw{}_{}e_{}bz.png".format(directory, str(i), epochs, batch_size), bw)
+    imsave("{}/Bgt{}_{}e_{}bz.png".format(directory, str(i), epochs, batch_size), lab2rgb(gt))
+    imsave("{}/Bpred{}_{}e_{}bz.png".format(directory, str(i), epochs, batch_size), lab2rgb(cur))
 
 def get_ride_of_additionnal_dim(l):
   l = np.array(l)
   return np.squeeze(l, axis=len(l.shape)-1)
+def normalize_lab(l):
+  cur = np.zeros(l.shape)
+  cur[:,:,:,0] = l[:,:,:,0] + 127
+  cur[:,:,:,1] = l[:,:,:,1] + 128
+  return cur / 255
+def denormalize_lab(l):
+  l = l * 255
+  cur = np.zeros(l.shape)
+  cur[:,:,:,0] = l[:,:,:,0] - 127
+  cur[:,:,:,1] = l[:,:,:,1] - 128
+  return cur
+
+
 
 # ==================> Callbacks <==================
 def checkpoint_callback(name):
