@@ -7,10 +7,11 @@ from keras.models import Sequential, Model
 from keras.layers import Conv2D, UpSampling2D, Dropout, Flatten, Dense, Input, Concatenate, MaxPooling2D
 from keras.callbacks import TensorBoard
 from keras.optimizers import SGD
+from keras import losses
 
 class Classification:
 
-  def __init__(self, load, loss='categorical_crossentropy'):
+  def __init__(self, load, loss=losses.categorical_crossentropy):
     self.load_saved = load
     # Learning rate is changed to 0.001
     self.optimizer = SGD(lr=1e-4, decay=1e-6, momentum=0.9, nesterov=True)
@@ -20,97 +21,75 @@ class Classification:
     self.input_type = "cls"
 
     # Define model
+    
+    WEIGHTS_PATH_NO_TOP = 'https://github.com/fchollet/deep-learning-models/releases/download/v0.1/vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5'
+    # build the VGG16 network
+    input_shape = (224, 224, 3)
+    img_input = Input(shape=input_shape)
+    # Block 1
+    x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv1')(img_input)
+    x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv2')(x)
+    x = MaxPooling2D((2, 2), strides=(2, 2), name='block1_pool')(x)
+
+    # Block 2
+    x = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv1')(x)
+    x = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv2')(x)
+    x = MaxPooling2D((2, 2), strides=(2, 2), name='block2_pool')(x)
+
+    # Block 3
+    x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv1')(x)
+    x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv2')(x)
+    x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv3')(x)
+    x = MaxPooling2D((2, 2), strides=(2, 2), name='block3_pool')(x)
+
+    # Block 4
+    x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv1')(x)
+    x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv2')(x)
+    x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv3')(x)
+    x = MaxPooling2D((2, 2), strides=(2, 2), name='block4_pool')(x)
+
+    # Block 5
+    x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv1')(x)
+    x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv2')(x)
+    x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv3')(x)
+    x = MaxPooling2D((2, 2), strides=(2, 2), name='block5_pool')(x)
+
+    vgg_model = Model(img_input, x, name='vgg16')
+    weights_path = get_file('vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5',
+                            WEIGHTS_PATH_NO_TOP,
+                            cache_subdir='models',
+                            file_hash='6d6bbae143d832006294945121d1f1fc')
+    vgg_model.load_weights(weights_path)
+    # print('VGG16 loaded!')
+    # Freeze the 18 first layers
+    for layer in vgg_model.layers[:18]:
+      layer.trainable = False
+
+    classifier = Conv2D(512, (3,3), activation='relu', padding='same')(vgg_model.outputs[-1])
+    classifier = UpSampling2D(size=(2, 2))(classifier)
+    classifier = Conv2D(256, (3,3), activation='relu', padding='same')(classifier)
+    classifier = UpSampling2D(size=(2, 2))(classifier)
+    classifier = Conv2D(256, (3,3), activation='relu', padding='same')(classifier)
+    classifier = UpSampling2D(size=(2, 2))(classifier)
+    classifier = Conv2D(128, (3,3), activation='relu', padding='same')(classifier)
+    classifier = UpSampling2D(size=(2, 2))(classifier)
+
+    # C*I*E*A* layer
+    a_layer = Conv2D(64, (1,1), activation='softmax', padding='same')(classifier)
+    a_layer = UpSampling2D(size=(2, 2))(a_layer)
+
+    # C*I*E*B* layer
+    b_layer = Conv2D(64, (1,1), activation='softmax', padding='same')(classifier)
+    b_layer = UpSampling2D(size=(2, 2))(b_layer)
+
+    # Concatenation and output layer
+    output = Concatenate(axis=1)([a_layer, b_layer])
+
+    self.model = Model(img_input, output)
+
     if is_model_saved(self.name) and self.load_saved:
-      self.model = load_model(self.name)
+      self.model = load_model(self.model, self.name)
       print("Model Loaded!")
-
-    else:
-      WEIGHTS_PATH_NO_TOP = 'https://github.com/fchollet/deep-learning-models/releases/download/v0.1/vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5'
-      # build the VGG16 network
-      input_shape = (224, 224, 3)
-      img_input = Input(shape=input_shape)
-      # Block 1
-      x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv1')(img_input)
-      x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv2')(x)
-      x = MaxPooling2D((2, 2), strides=(2, 2), name='block1_pool')(x)
-
-      # Block 2
-      x = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv1')(x)
-      x = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv2')(x)
-      x = MaxPooling2D((2, 2), strides=(2, 2), name='block2_pool')(x)
-
-      # Block 3
-      x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv1')(x)
-      x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv2')(x)
-      x = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv3')(x)
-      x = MaxPooling2D((2, 2), strides=(2, 2), name='block3_pool')(x)
-
-      # Block 4
-      x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv1')(x)
-      x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv2')(x)
-      x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv3')(x)
-      x = MaxPooling2D((2, 2), strides=(2, 2), name='block4_pool')(x)
-
-      # Block 5
-      x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv1')(x)
-      x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv2')(x)
-      x = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv3')(x)
-      x = MaxPooling2D((2, 2), strides=(2, 2), name='block5_pool')(x)
-
-      vgg_model = Model(img_input, x, name='vgg16')
-      weights_path = get_file('vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5',
-                              WEIGHTS_PATH_NO_TOP,
-                              cache_subdir='models',
-                              file_hash='6d6bbae143d832006294945121d1f1fc')
-      vgg_model.load_weights(weights_path)
-      print('VGG16 loaded!')
-      # Freeze the 18 first layers
-      for layer in vgg_model.layers[:18]:
-        layer.trainable = False
-
-      classifier = Conv2D(512, (3,3), activation='relu', padding='same')(vgg_model.outputs[-1])
-      classifier = UpSampling2D(size=(2, 2))(classifier)
-      classifier = Conv2D(256, (3,3), activation='relu', padding='same')(classifier)
-      classifier = UpSampling2D(size=(2, 2))(classifier)
-      classifier = Conv2D(256, (3,3), activation='relu', padding='same')(classifier)
-      classifier = UpSampling2D(size=(2, 2))(classifier)
-      classifier = Conv2D(128, (3,3), activation='relu', padding='same')(classifier)
-      classifier = UpSampling2D(size=(2, 2))(classifier)
-
-      # C*I*E*A* layer
-      a_layer = Conv2D(64, (1,1), activation='softmax', padding='same')(classifier)
-      a_layer = UpSampling2D(size=(2, 2))(a_layer)
-
-      # C*I*E*B* layer
-      b_layer = Conv2D(64, (1,1), activation='softmax', padding='same')(classifier)
-      b_layer = UpSampling2D(size=(2, 2))(b_layer)
-
-      # Concatenation and output layer
-      print("lab", a_layer.shape, b_layer.shape)
-      output = Concatenate(axis=1)([a_layer, b_layer])
-      print("ba3d", output.shape)
-
-      self.model = Model(img_input, output)
-
-
-      # vgg_model = applications.VGG16(weights='imagenet', include_top=False)
-      # build a classifier model to put on top of VGG16
-      # self.model = Sequential()
-      # self.model.add(vgg_model)
-      # self.model.add(Conv2D(512, (3, 3), activation='relu', padding='same'))
-      # self.model.add(UpSampling2D((2, 2)))
-      # self.model.add(Conv2D(256, (3, 3), activation='relu', padding='same'))
-      # self.model.add(UpSampling2D((2, 2)))
-      # self.model.add(Conv2D(256, (3, 3), activation='relu', padding='same'))
-      # self.model.add(UpSampling2D((2, 2)))
-      # self.model.add(Conv2D(128, (3, 3), activation='relu', padding='same'))
-      # self.model.add(UpSampling2D((2, 2)))
-      # self.model.add(Conv2D(128, (1, 1), activation='softmax', padding='same'))
-      # self.model.add(UpSampling2D((2, 2)))
-
-
-      
-
 
     self.model.compile(optimizer=self.optimizer, loss=self.loss, metrics=['accuracy'])
 

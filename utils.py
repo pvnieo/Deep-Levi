@@ -1,7 +1,7 @@
 import os, os.path
-from time import time
 import numpy as np
 import tensorflow as tf
+from tensorflow import convert_to_tensor as ctt
 import numpy as np
 from keras import losses
 from keras.models import model_from_json
@@ -14,23 +14,16 @@ from skimage.io import imsave
 # ==================> Saving and Loading models <==================
 def is_model_saved(name):
   weights = "saved_models/" + name + ".h5"
-  structure = "saved_models/" + name + ".json"
-  return os.path.isfile(weights) and os.path.isfile(structure)
+  return os.path.isfile(weights)
 
-def load_model(name):
+def load_model(model, name):
   weights = "saved_models/" + name + ".h5"
-  structure = "saved_models/" + name + ".json"
-  with open(structure,'r') as f:
-      output = f.read()
-  model = model_from_json(output)
+  model = model
   model.load_weights(weights)
   return model
 
 def save_model(model):
     root = "saved_models/" + model.name
-    model_json = model.model.to_json()
-    with open(root + ".json", "w") as json_file:
-        json_file.write(model_json)
     model.model.save_weights(root + ".h5")
 
 # ==================> Data processing <==================
@@ -45,6 +38,59 @@ def load_data(directory):
   test_set = 1.0/255 * test_set
   return train_set, test_set
 
+def set_data_input(data, input_type):
+  if input_type == "reg": # If reg, return the L channel
+    data = data
+    return data.reshape(data.shape+(1,))
+  elif input_type == "cls": # If cls, retrun the L channel duplicated 3 times
+    data = np.expand_dims(data, axis=-1)
+    data = np.repeat(data, axis=-1, repeats=3)
+    return data
+
+def set_data_output(data, input_type):
+  data = normalize_lab(data)
+  if input_type == "reg": # if reg, return ab channels normalized
+    return data
+  elif input_type == "cls": # if cls, return ab classified version and concatenated
+    def f(x): return int(x/4)
+    f = np.vectorize(f)
+    data = data * 255
+    data_a = data[:,:,:,0]
+    data_a = f(data_a)
+    data_b = data[:,:,:,1]
+    data_b = f(data_b)
+    data_a = tc(data_a, num_classes=64)
+    data_b = tc(data_b, num_classes=64)
+    data = np.concatenate((data_a, data_b),axis=1)
+    return data
+
+def from_output_to_image(data, input_type):
+  if input_type == "reg":
+    data = denormalize_lab(data)
+    return data
+  elif input_type == "cls":
+    a_channel_classes = data[:224,:,:]
+    b_channel_classes = data[224:,:,:]
+    a_channel_bin = np.apply_along_axis(np.argmax, -1, a_channel_classes)
+    b_channel_bin = np.apply_along_axis(np.argmax, -1, b_channel_classes)
+    print("likanet na9ssa", a_channel_bin.shape, np.max(a_channel_classes), np.max(a_channel_bin))
+    a_channel = a_channel_bin / 63
+    b_channel = b_channel_bin / 63
+    output = np.zeros(a_channel.shape + (2,))
+    output[:,:,0] = a_channel
+    output[:,:,1] = b_channel
+    output = denormalize_lab(output)
+    print("ha sora kamila", output.shape)
+    return output
+
+def from_input_to_image(data, input_type):
+  if input_type == "reg":
+    data = get_ride_of_additionnal_dim(data)
+    return data
+  elif input_type == "cls":
+    data = data[:,:,0]
+    return data
+
 def train_generator(train_set, batch_size, split, input_type):
   # Data augumentation generator
   datagen = ImageDataGenerator(
@@ -53,59 +99,65 @@ def train_generator(train_set, batch_size, split, input_type):
           rotation_range=20,
           horizontal_flip=True)
   for batch in datagen.flow(train_set[:split], batch_size=batch_size):
-      lab_batch = rgb2lab(batch)
-      X_batch = lab_batch[:,:,:,0]
-      Y_batch = normalize_lab(lab_batch[:,:,:,1:])
-      if input_type = "cls":
-        X_batch = np.expand_dims(X_batch, axis=-1)
-        X_batch = np.repeat(X_batch, axis=-1, repeats=3)
-        Y_batch_1 = tc(Y_batch[:,:,:,0], num_classes=64)
-        Y_batch_2 = tc(Y_batch[:,:,:,1], num_classes=64)
-        Y_batch = np.concatenate((Y_batch_1, Y_batch_2),axis=0)
-      yield (X_batch.reshape(X_batch.shape+(1,)), Y_batch)
+      lab_channel = rgb2lab(batch)
+      l_channel = lab_channel[:,:,:,0]
+      ab_channel = lab_channel[:,:,:,1:]
+      X_batch = set_data_input(l_channel, input_type)
+      Y_batch = set_data_output(ab_channel, input_type)
+      yield (X_batch, Y_batch)
 
 def valid_generator(train_set, batch_size, split, input_type):
   datagen = ImageDataGenerator()
   for batch in datagen.flow(train_set[split:], batch_size=batch_size):
-      lab_batch = rgb2lab(batch)
-      X_batch = lab_batch[:,:,:,0]
-      Y_batch = normalize_lab(lab_batch[:,:,:,1:])
-      if input_type = "cls":
-        X_batch = np.expand_dims(X_batch, axis=-1)
-        X_batch = np.repeat(X_batch, axis=-1, repeats=3)
-        Y_batch_1 = tc(Y_batch[:,:,:,0], num_classes=64)
-        Y_batch_2 = tc(Y_batch[:,:,:,1], num_classes=64)
-        Y_batch = np.concatenate((Y_batch_1, Y_batch_2),axis=0)
-      yield (X_batch.reshape(X_batch.shape+(1,)), Y_batch)
+      lab_channel = rgb2lab(batch)
+      l_channel = lab_channel[:,:,:,0]
+      ab_channel = lab_channel[:,:,:,1:]
+      X_batch = set_data_input(l_channel, input_type)
+      Y_batch = set_data_output(ab_channel, input_type)
+      yield (X_batch, Y_batch)
 
-def get_test_data(test_set):
-  Xtest = rgb2lab(test_set)[:,:,:,0]
-  Ytest = rgb2lab(test_set)[:,:,:,1:]
-  Ytest = normalize_lab(Ytest)
-  if input_type = "cls":
-    Xtest = np.expand_dims(Xtest, axis=-1)
-    Xtest = np.repeat(Xtest, axis=-1, repeats=3)
-    Y_batch_1 = tc(Ytest[:,:,:,0], num_classes=64)
-    Y_batch_2 = tc(Ytest[:,:,:,1], num_classes=64)
-    Ytest = np.concatenate((Y_batch_1, Y_batch_2),axis=0)
-  Xtest = Xtest.reshape(Xtest.shape+(1,))
-  return Xtest, Ytest
+def get_test_data(test_set, input_type):
+  l_channel = rgb2lab(test_set)[:,:,:,0]
+  ab_channel = rgb2lab(test_set)[:,:,:,1:]
+  X_batch = set_data_input(l_channel, input_type)
+  Y_batch = set_data_output(ab_channel, input_type)
+  return X_batch, Y_batch
+
+def save_sample(sample, input_type, directory, prefix, i, epochs, batch_size):
+  gray_scale = from_input_to_image(sample[0], input_type)
+  if input_type == "reg":
+    gt = np.zeros((256, 256, 3))
+    pred = np.zeros((256, 256, 3))
+  elif input_type == "cls":
+    gt = np.zeros((224, 224, 3))
+    pred = np.zeros((224, 224, 3))
+  ab_gt = from_output_to_image(sample[1], input_type)
+  ab_pred = from_output_to_image(sample[2], input_type)
+  gt[:,:,0] = gray_scale
+  gt[:,:,1:] = ab_gt
+  pred[:,:,0] = gray_scale
+  pred[:,:,1] = np.clip(ab_pred[:,:,0], -127, 128)
+  pred[:,:,2] = np.clip(ab_pred[:,:,1], -128, 127)
+  bw = gray_scale / 100
+  imsave("{}/{}bw{}_{}e_{}bz.png".format(directory, prefix, str(i), epochs, batch_size), bw)
+  imsave("{}/{}gt{}_{}e_{}bz.png".format(directory, prefix, str(i), epochs, batch_size), lab2rgb(gt))
+  imsave("{}/{}pred{}_{}e_{}bz.png".format(directory, prefix, str(i), epochs, batch_size), lab2rgb(pred))
+
 
 def save_colored_samples(model, test_set, to_color, epochs, batch_size):
   color_me = rgb2lab(test_set)[:,:,:,0]
-  color_me = color_me.reshape(color_me.shape+(1,))
+  color_me = set_data_input(color_me, model.input_type)
 
   ground_truth = rgb2lab(test_set)[:,:,:,1:]
-  ground_truth = ground_truth.reshape(ground_truth.shape+(1,))
+  ground_truth = set_data_output(ground_truth, model.input_type)
 
   output = model.model.predict(color_me)
-  # output = output * 128
-  output = denormalize_lab(output)
-  output = output.reshape(output.shape+(1,))
-  # Take the N first good colorization
+
+  # Take the N first good and bad colorization
   zipped = list(zip(color_me, ground_truth, output)) # [(bw, gt, output)]
-  to_be_saved = sorted(zipped, key=lambda x: np.sum(tf.keras.backend.eval(losses.mean_squared_error(x[1],x[2]))))[:to_color]
-  to_be_saved_bad = sorted(zipped, key=lambda x: np.sum(tf.keras.backend.eval(losses.mean_squared_error(x[1],x[2]))))[-to_color:]
+
+  to_be_saved = sorted(zipped, key=lambda x: np.sum(tf.keras.backend.eval(model.model.loss(ctt(x[2], dtype="float32"), ctt(x[1], dtype="float32")))))[:to_color]
+  to_be_saved_bad = sorted(zipped, key=lambda x: np.sum(tf.keras.backend.eval(model.model.loss(ctt(x[2], dtype="float32"), ctt(x[1], dtype="float32")))))[-to_color:]
 
   # Save Output colorizations
   # Check if directory exists
@@ -114,59 +166,26 @@ def save_colored_samples(model, test_set, to_color, epochs, batch_size):
       os.makedirs(directory)
   # Save!
   for i in range(len(to_be_saved)):
-    # Initialization
-    cur = np.zeros((256, 256, 3))
-    gt = np.zeros((256, 256, 3))
-    # Get ride of add dim added for Keras input
-    grey_scale = get_ride_of_additionnal_dim(to_be_saved[i][0])
-    ab_gt = get_ride_of_additionnal_dim(to_be_saved[i][1])
-    ab_predicted = to_be_saved[i][2]
-    # Write images
-    cur[:,:,0] = grey_scale
-    gt[:,:,0] = grey_scale
-    cur[:,:,1:2] = np.clip(ab_predicted[:,:,0], -127, 128)
-    cur[:,:,2:] = np.clip(ab_predicted[:,:,1], -128, 127)
-    gt[:,:,1:] = ab_gt
-    bw = grey_scale / 100
-    imsave("{}/Gbw{}_{}e_{}bz.png".format(directory, str(i), epochs, batch_size), bw)
-    imsave("{}/Ggt{}_{}e_{}bz.png".format(directory, str(i), epochs, batch_size), lab2rgb(gt))
-    imsave("{}/Gpred{}_{}e_{}bz.png".format(directory, str(i), epochs, batch_size), lab2rgb(cur))
-
+    save_sample(to_be_saved[i], model.input_type, directory, "G", i, epochs, batch_size)
   for i in range(len(to_be_saved_bad)):
-    # Initialization
-    cur = np.zeros((256, 256, 3))
-    gt = np.zeros((256, 256, 3))
-    # Get ride of add dim added for Keras input
-    grey_scale = get_ride_of_additionnal_dim(to_be_saved_bad[i][0])
-    ab_gt = get_ride_of_additionnal_dim(to_be_saved_bad[i][1])
-    ab_predicted = to_be_saved_bad[i][2]
-    # Write images
-    cur[:,:,0] = grey_scale
-    gt[:,:,0] = grey_scale
-    cur[:,:,1:2] = np.clip(ab_predicted[:,:,0], -127, 127)
-    cur[:,:,2:] = np.clip(ab_predicted[:,:,1], -127, 127)
-    gt[:,:,1:] = ab_gt
-    bw = grey_scale / 100
-    imsave("{}/Bbw{}_{}e_{}bz.png".format(directory, str(i), epochs, batch_size), bw)
-    imsave("{}/Bgt{}_{}e_{}bz.png".format(directory, str(i), epochs, batch_size), lab2rgb(gt))
-    imsave("{}/Bpred{}_{}e_{}bz.png".format(directory, str(i), epochs, batch_size), lab2rgb(cur))
+    save_sample(to_be_saved_bad[i], model.input_type, directory, "B", i, epochs, batch_size)
 
 def get_ride_of_additionnal_dim(l):
   l = np.array(l)
   return np.squeeze(l, axis=len(l.shape)-1)
+
 def normalize_lab(l):
   cur = np.zeros(l.shape)
   cur[:,:,:,0] = l[:,:,:,0] + 127
   cur[:,:,:,1] = l[:,:,:,1] + 128
   return cur / 255
+
 def denormalize_lab(l):
   l = l * 255
   cur = np.zeros(l.shape)
-  cur[:,:,:,0] = l[:,:,:,0] - 127
-  cur[:,:,:,1] = l[:,:,:,1] - 128
+  cur[:,:,0] = l[:,:,0] - 127
+  cur[:,:,1] = l[:,:,1] - 128
   return cur
-
-
 
 # ==================> Callbacks <==================
 def checkpoint_callback(name):
@@ -207,4 +226,3 @@ def learningratescheduler_callback():
 
   pass
   return LearningRateScheduler(triang1, verbose=0)
-
