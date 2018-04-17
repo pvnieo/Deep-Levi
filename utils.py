@@ -33,9 +33,10 @@ def load_data(directory):
   # Load images (train + test)
   train_set = np.array([img_to_array(load_img(PATH_TO_TRAIN  + x)) for x in os.listdir(PATH_TO_TRAIN)], dtype=float)
   test_set = np.array([img_to_array(load_img(PATH_TO_TEST  + x)) for x in os.listdir(PATH_TO_TEST)], dtype=float)
+  print("7ad hna mezyane", train_set.shape)
   # Data normalisation
-  train_set = 1.0/255 * train_set
-  test_set = 1.0/255 * test_set
+  train_set *= 1.0/255
+  test_set *= 1.0/255
   return train_set, test_set
 
 def set_data_input(data, input_type):
@@ -54,7 +55,7 @@ def set_data_output(data, input_type):
   elif input_type == "cls": # if cls, return ab classified version and concatenated
     def f(x): return int(x/4)
     f = np.vectorize(f)
-    data = data * 255
+    data *= 255
     data_a = data[:,:,:,0]
     data_a = f(data_a)
     data_b = data[:,:,:,1]
@@ -73,8 +74,8 @@ def from_output_to_image(data, input_type):
     b_channel_classes = data[224:,:,:]
     a_channel_bin = np.apply_along_axis(np.argmax, -1, a_channel_classes)
     b_channel_bin = np.apply_along_axis(np.argmax, -1, b_channel_classes)
-    a_channel = a_channel_bin / 63
-    b_channel = b_channel_bin / 63
+    a_channel /=  63
+    b_channel /=  63
     output = np.zeros(a_channel.shape + (2,))
     output[:,:,0] = a_channel
     output[:,:,1] = b_channel
@@ -179,7 +180,7 @@ def normalize_lab(l):
   return cur / 255
 
 def denormalize_lab(l):
-  l = l * 255
+  l *=  255
   cur = np.zeros(l.shape)
   cur[:,:,0] = l[:,:,0] - 127
   cur[:,:,1] = l[:,:,1] - 128

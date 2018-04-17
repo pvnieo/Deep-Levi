@@ -53,14 +53,7 @@ if __name__ == '__main__':
                utils.tensorboard_callback(selected_model.name)]
 
   # Train model
-  history = selected_model.model.fit_generator(generator=utils.train_generator(train_set, BATCH_SIZE, TRAIN_VALID_SPLIT, 
-                                                                               selected_model.input_type), 
-                                      steps_per_epoch=STEPS_PER_EPOCHS,
-                                      callbacks=callbacks, 
-                                      validation_data  = utils.valid_generator(train_set, BATCH_SIZE, TRAIN_VALID_SPLIT, 
-                                                                               selected_model.input_type), 
-                                      validation_steps = STEPS_PER_EPOCHS_VALID, 
-                                      epochs=EPOCHS)
+ # history = selected_model.model.fit_generator(generator=utils.train_generator(train_set, BATCH_SIZE, TRAIN_VALID_SPLIT,                                                                                selected_model.input_type), steps_per_epoch=STEPS_PER_EPOCHS,callbacks=callbacks, validation_data  = utils.valid_generator(train_set, BATCH_SIZE, TRAIN_VALID_SPLIT, selected_model.input_type),validation_steps = STEPS_PER_EPOCHS_VALID, epochs=EPOCHS)
   
   # print(history.history)
 
