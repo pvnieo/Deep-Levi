@@ -14,7 +14,8 @@ class Classification:
   def __init__(self, load, loss=losses.categorical_crossentropy):
     self.load_saved = load
     # Learning rate is changed to 0.001
-    self.optimizer = SGD(lr=5*1e-3, decay=1e-6, momentum=0.9, nesterov=True)
+    # self.optimizer = SGD(lr=5*1e-3, decay=1e-6, momentum=0.9, nesterov=True)
+    self.optimizer = optimizers.Adadelta(lr=0.001, rho=0.95, epsilon=None, decay=0.0)
     self.loss = loss
     self.callbacks = []
     self.name = "classification"
