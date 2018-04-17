@@ -16,6 +16,7 @@ if __name__ == '__main__':
   parser.add_argument('-b', '--batch-size', required=False,type=int,default=32,help='Batch size to use')
   parser.add_argument("-tc", "--to-color", help="Number of samples to be colored", type=int, default=10)
   parser.add_argument("--no-load", help="Disable loading saved model", action="store_true")
+  parser.add_argument("--no-save", help="Disable saving the new model", action="store_true")
 
   args = parser.parse_args()
 
@@ -23,6 +24,7 @@ if __name__ == '__main__':
   BATCH_SIZE = args.batch_size
   EPOCHS = args.epochs
   LOAD = not args.no_load
+  SAVE = not args.no_save
 
   # Load training and testing data
   DATA_DIR = args.data_dir
@@ -63,7 +65,7 @@ if __name__ == '__main__':
   # print(history.history)
 
   # Save model
-  if LOAD: # We don't save the new weights if we didn't load
+  if LOAD and SAVE: # We don't save the new weights if we didn't load
     utils.save_model(selected_model)
 
   # Get test data
