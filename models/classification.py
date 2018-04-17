@@ -6,7 +6,7 @@ from keras.utils.data_utils import get_file
 from keras.models import Sequential, Model
 from keras.layers import Conv2D, UpSampling2D, Dropout, Flatten, Dense, Input, Concatenate, MaxPooling2D
 from keras.callbacks import TensorBoard
-from keras.optimizers import SGD
+from keras.optimizers import SGD, Adadelta
 from keras import losses
 
 class Classification:
@@ -15,7 +15,7 @@ class Classification:
     self.load_saved = load
     # Learning rate is changed to 0.001
     # self.optimizer = SGD(lr=5*1e-3, decay=1e-6, momentum=0.9, nesterov=True)
-    self.optimizer = optimizers.Adadelta(lr=0.001, rho=0.95, epsilon=None, decay=0.0)
+    self.optimizer = Adadelta(lr=0.001, rho=0.95, epsilon=None, decay=0.0)
     self.loss = loss
     self.callbacks = []
     self.name = "classification"
