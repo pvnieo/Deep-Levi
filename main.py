@@ -17,7 +17,7 @@ if __name__ == '__main__':
   parser.add_argument("-tc", "--to-color", help="Number of samples to be colored", type=int, default=10)
   parser.add_argument("--no-load", help="Disable loading saved model", action="store_true")
   parser.add_argument("--no-save", help="Disable saving the new model", action="store_true")
-
+  parser.add_argument("--no-train", help="Disable training the model", action="store_true")
   args = parser.parse_args()
 
   # Hyperparameters
@@ -25,14 +25,18 @@ if __name__ == '__main__':
   EPOCHS = args.epochs
   LOAD = not args.no_load
   SAVE = not args.no_save
+  TRAIN = not args.no_train
 
   # Load training and testing data
   DATA_DIR = args.data_dir
-  train_set, test_set = utils.load_data(DATA_DIR)
-  SPLIT = 0.8
-  TRAIN_VALID_SPLIT = floor(len(train_set) * SPLIT)
-  STEPS_PER_EPOCHS = floor(len(train_set) * SPLIT / BATCH_SIZE)
-  STEPS_PER_EPOCHS_VALID = max(floor(len(train_set) * (1 - SPLIT) / BATCH_SIZE), 1)
+  DATA_TRAIN_DIR = DATA_DIR + "/train"
+  DATA_VALID_DIR = DATA_DIR + "/validation"
+  DATA_TEST_DIR = DATA_DIR + "/test/1"
+  # train_set, test_set = utils.load_data(DATA_DIR)
+
+  
+  STEPS_PER_EPOCHS, STEPS_PER_EPOCHS_VALID, STEPS_PER_EPOCHS_TEST = utils.steps(DATA_TRAIN_DIR, DATA_VALID_DIR, DATA_TEST_DIR, BATCH_SIZE)
+
   print()
   print('MODEL:           ',args.model)
   print('DATA_DIR:        ',DATA_DIR)
@@ -50,23 +54,32 @@ if __name__ == '__main__':
 
   # Setting Callbacks
   callbacks = [utils.checkpoint_callback(selected_model.name), 
-               utils.tensorboard_callback(selected_model.name)]
+               utils.tensorboard_callback(selected_model.name),
+               utils.earlystopping_callback()]
 
-  # Train model
- # history = selected_model.model.fit_generator(generator=utils.train_generator(train_set, BATCH_SIZE, TRAIN_VALID_SPLIT,                                                                                selected_model.input_type), steps_per_epoch=STEPS_PER_EPOCHS,callbacks=callbacks, validation_data  = utils.valid_generator(train_set, BATCH_SIZE, TRAIN_VALID_SPLIT, selected_model.input_type),validation_steps = STEPS_PER_EPOCHS_VALID, epochs=EPOCHS)
+  if TRAIN:
+    # Train model
+    history = selected_model.model.fit_generator(generator=utils.train_generator(DATA_TRAIN_DIR, selected_model.target_size, 
+                                                                                  BATCH_SIZE, selected_model.input_type), 
+                                                 steps_per_epoch=STEPS_PER_EPOCHS, 
+                                                 callbacks=callbacks, 
+                                                 validation_data  = utils.valid_generator(DATA_VALID_DIR, selected_model.target_size, 
+                                                                                          BATCH_SIZE, selected_model.input_type), 
+                                                 validation_steps = STEPS_PER_EPOCHS_VALID, 
+                                                 epochs=EPOCHS)
   
   # print(history.history)
 
   # Save model
-  if LOAD and SAVE: # We don't save the new weights if we didn't load
-    utils.save_model(selected_model)
+  # if LOAD and SAVE: # We don't save the new weights if we didn't load
+  #   utils.save_model(selected_model)
 
   # Get test data
-  Xtest, Ytest = utils.get_test_data(test_set, selected_model.input_type)
+  #Xtest, Ytest = utils.get_test_data(test_set, selected_model.input_type)
 
   # Printing generalisation loss
-  print("====> Generalisation loss: ", selected_model.model.evaluate(Xtest, Ytest, batch_size=BATCH_SIZE))
+  # print("====> Generalisation loss: ", selected_model.model.evaluate(Xtest, Ytest, batch_size=BATCH_SIZE))
 
   # Let's color some images
   TO_COLOR = args.to_color
-  utils.save_colored_samples(selected_model, test_set, TO_COLOR, EPOCHS, BATCH_SIZE)
+  utils.save_colored_samples(selected_model, DATA_TEST_DIR, STEPS_PER_EPOCHS_TEST, TO_COLOR, EPOCHS, BATCH_SIZE)

@@ -39,6 +39,12 @@ def load_data(directory):
   test_set *= 1.0/255
   return train_set, test_set
 
+def steps(train_dir, valid_dir, test_dir, batch_size):
+  len_train = len([name for name in os.listdir(train_dir+"/1") if os.path.isfile(name)])
+  len_valid = len([name for name in os.listdir(valid_dir+"/1") if os.path.isfile(name)])
+  len_test = len([name for name in os.listdir(test_dir) if os.path.isfile(name)])
+  return (max(1,len_train // batch_size), max(1, len_valid // batch_size), max(1, len_test // batch_size))
+
 def set_data_input(data, input_type):
   if input_type == "reg": # If reg, return the L channel
     data = data
@@ -90,14 +96,17 @@ def from_input_to_image(data, input_type):
     data = data[:,:,0]
     return data
 
-def train_generator(train_set, batch_size, split, input_type):
+def train_generator(train_dir, target_size, batch_size, input_type):
   # Data augumentation generator
   datagen = ImageDataGenerator(
           shear_range=0.2,
           zoom_range=0.2,
+          width_shift_range=0.2,
+          height_shift_range=0.2,
           rotation_range=20,
-          horizontal_flip=True)
-  for batch in datagen.flow(train_set[:split], batch_size=batch_size):
+          horizontal_flip=True, 
+          rescale=1./255)
+  for batch in datagen.flow_from_directory(train_dir, target_size=target_size, class_mode=None, batch_size=batch_size):
       lab_channel = rgb2lab(batch)
       l_channel = lab_channel[:,:,:,0]
       ab_channel = lab_channel[:,:,:,1:]
@@ -105,9 +114,10 @@ def train_generator(train_set, batch_size, split, input_type):
       Y_batch = set_data_output(ab_channel, input_type)
       yield (X_batch, Y_batch)
 
-def valid_generator(train_set, batch_size, split, input_type):
-  datagen = ImageDataGenerator()
-  for batch in datagen.flow(train_set[split:], batch_size=batch_size):
+def valid_generator(train_dir, target_size, batch_size, input_type):
+  datagen = ImageDataGenerator(rescale=1./255)
+  print("taille dyal retourn gen", train_dir)
+  for batch in datagen.flow_from_directory(train_dir, target_size=target_size, class_mode=None, batch_size=batch_size, shuffle=False):
       lab_channel = rgb2lab(batch)
       l_channel = lab_channel[:,:,:,0]
       ab_channel = lab_channel[:,:,:,1:]
@@ -143,14 +153,19 @@ def save_sample(sample, input_type, directory, prefix, i, epochs, batch_size):
   imsave("{}/{}pred{}_{}e_{}bz.png".format(directory, prefix, str(i), epochs, batch_size), lab2rgb(pred))
 
 
-def save_colored_samples(model, test_set, to_color, epochs, batch_size):
+def save_colored_samples(model, test_dir, steps, to_color, epochs, batch_size):
+  print("hahiya bent l9a7ba", test_dir[:-2  ])
+  output = model.model.predict_generator(valid_generator(test_dir[:-2], model.target_size, batch_size, model.input_type), 
+                                         steps=steps,
+                                         verbose=1)
+
+  test_set = np.array([img_to_array(load_img(test_dir + "/" + x)) for x in os.listdir(test_dir)], dtype=float) * 1/255
   color_me = rgb2lab(test_set)[:,:,:,0]
   color_me = set_data_input(color_me, model.input_type)
 
   ground_truth = rgb2lab(test_set)[:,:,:,1:]
   ground_truth = set_data_output(ground_truth, model.input_type)
 
-  output = model.model.predict(color_me)
 
   # Take the N first good and bad colorization
   zipped = list(zip(color_me, ground_truth, output)) # [(bw, gt, output)]

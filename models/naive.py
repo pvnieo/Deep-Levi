@@ -15,7 +15,7 @@ class Naive:
     self.load_saved = load
     self.optimizer = optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
     self.loss = loss
-    self.callbacks = []
+    self.target_size = (256, 256)
     self.name = "naive"
     self.input_type = "reg"
     self.model = Sequential()
@@ -44,7 +44,7 @@ class Naive:
       self.model = load_model(self.model, self.name)
       print("Model Loaded!")
 
-    self.model.compile(optimizer=self.optimizer, loss=self.loss)
+    self.model.compile(optimizer=self.optimizer, loss=self.loss, metrics=["acc"])
 
 
 

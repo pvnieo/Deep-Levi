@@ -4,7 +4,7 @@ from utils import is_model_saved, load_model
 from keras import applications
 from keras.utils.data_utils import get_file
 from keras.models import Sequential, Model
-from keras.layers import Conv2D, UpSampling2D, Dropout, Flatten, Dense, Input, Concatenate, MaxPooling2D
+from keras.layers import Conv2D, UpSampling2D, Dropout, Flatten, Dense, Input, Concatenate, MaxPooling2D, BatchNormalization
 from keras.callbacks import TensorBoard
 from keras.optimizers import SGD, Adadelta
 from keras import losses
@@ -17,7 +17,7 @@ class Classification:
     # self.optimizer = SGD(lr=5*1e-3, decay=1e-6, momentum=0.9, nesterov=True)
     self.optimizer = Adadelta(lr=0.001, rho=0.95, epsilon=None, decay=0.0)
     self.loss = loss
-    self.callbacks = []
+    self.target_size = (224, 224)
     self.name = "classification"
     self.input_type = "cls"
 
@@ -67,6 +67,7 @@ class Classification:
       layer.trainable = False
 
     classifier = Conv2D(512, (3,3), activation='relu', padding='same')(vgg_model.outputs[-1])
+    classifier = BatchNormalization()(classifier)
     classifier = UpSampling2D(size=(2, 2))(classifier)
     classifier = Conv2D(256, (3,3), activation='relu', padding='same')(classifier)
     classifier = UpSampling2D(size=(2, 2))(classifier)

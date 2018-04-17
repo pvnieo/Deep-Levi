@@ -20,7 +20,7 @@ class Regression:
     # We used the recommended parameters
     self.optimizer = optimizers.Adadelta(lr=1.0, rho=0.95, epsilon=None, decay=0.0)
     self.loss = loss
-    self.callbacks = []
+    self.target_size = (256, 256)
     self.name = "regression"
     self.input_type = "reg"
 
