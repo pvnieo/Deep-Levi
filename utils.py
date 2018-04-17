@@ -73,14 +73,12 @@ def from_output_to_image(data, input_type):
     b_channel_classes = data[224:,:,:]
     a_channel_bin = np.apply_along_axis(np.argmax, -1, a_channel_classes)
     b_channel_bin = np.apply_along_axis(np.argmax, -1, b_channel_classes)
-    print("likanet na9ssa", a_channel_bin.shape, np.max(a_channel_classes), np.max(a_channel_bin))
     a_channel = a_channel_bin / 63
     b_channel = b_channel_bin / 63
     output = np.zeros(a_channel.shape + (2,))
     output[:,:,0] = a_channel
     output[:,:,1] = b_channel
     output = denormalize_lab(output)
-    print("ha sora kamila", output.shape)
     return output
 
 def from_input_to_image(data, input_type):
