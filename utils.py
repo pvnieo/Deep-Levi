@@ -40,9 +40,9 @@ def load_data(directory):
   return train_set, test_set
 
 def steps(train_dir, valid_dir, test_dir, batch_size):
-  len_train = len([name for name in os.listdir(train_dir+"/1") if os.path.isfile(name)])
-  len_valid = len([name for name in os.listdir(valid_dir+"/1") if os.path.isfile(name)])
-  len_test = len([name for name in os.listdir(test_dir) if os.path.isfile(name)])
+  len_train = len([name for name in os.listdir(train_dir+"/1") ])
+  len_valid = len([name for name in os.listdir(valid_dir+"/1") ])
+  len_test = len([name for name in os.listdir(test_dir)])
   return (max(1,len_train // batch_size), max(1, len_valid // batch_size), max(1, len_test // batch_size))
 
 def set_data_input(data, input_type):

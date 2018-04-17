@@ -44,7 +44,7 @@ class Naive:
       self.model = load_model(self.model, self.name)
       print("Model Loaded!")
 
-    self.model.compile(optimizer=self.optimizer, loss=self.loss, metrics=["acc"])
+    self.model.compile(optimizer=self.optimizer, loss=self.loss)
 
 
 
