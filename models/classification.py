@@ -15,7 +15,7 @@ class Classification:
     self.load_saved = load
     # Learning rate is changed to 0.001
     # self.optimizer = SGD(lr=5*1e-3, decay=1e-6, momentum=0.9, nesterov=True)
-    self.optimizer = Adadelta(lr=1, rho=0.95, epsilon=None, decay=0.0)
+    self.optimizer = Adadelta(lr=0.01, rho=0.95, epsilon=None, decay=0.0)
     self.loss = loss
     self.target_size = (224, 224)
     self.name = "classification"
