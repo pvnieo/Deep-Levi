@@ -14,9 +14,9 @@ class Classification:
   def __init__(self, load, loss=losses.categorical_crossentropy):
     self.load_saved = load
     # Learning rate is changed to 0.001
-    # self.optimizer = SGD(lr=1e-3, decay=1e-6, momentum=0.9, nesterov=True)
+    self.optimizer = SGD(lr=1e-3, decay=1e-6, momentum=0.9, nesterov=True)
     # self.optimizer = Adadelta(lr=0.01, rho=0.95, epsilon=None, decay=0.0)
-    self.optimizer = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
+    # self.optimizer = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
     self.loss = loss
     self.target_size = (224, 224)
     self.name = "classification"
@@ -64,7 +64,7 @@ class Classification:
     vgg_model.load_weights(weights_path)
     # print('VGG16 loaded!')
     # Freeze the 18 first layers
-    for layer in vgg_model.layers[:14]:
+    for layer in vgg_model.layers[:10]:
       layer.trainable = False
 
     classifier = Conv2D(512, (3,3), activation='relu', padding='same')(vgg_model.outputs[-1])
