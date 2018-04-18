@@ -32,7 +32,7 @@ if __name__ == '__main__':
   DATA_DIR = args.data_dir
   DATA_TRAIN_DIR = DATA_DIR + "/train"
   DATA_VALID_DIR = DATA_DIR + "/validation"
-  DATA_TEST_DIR = DATA_DIR + "/test/1"
+  DATA_TEST_DIR = DATA_DIR + "/train/1"
   # train_set, test_set = utils.load_data(DATA_DIR)
 
   
