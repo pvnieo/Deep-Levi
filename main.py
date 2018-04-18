@@ -18,6 +18,7 @@ if __name__ == '__main__':
   parser.add_argument("--no-load", help="Disable loading saved model", action="store_true")
   parser.add_argument("--no-save", help="Disable saving the new model", action="store_true")
   parser.add_argument("--no-train", help="Disable training the model", action="store_true")
+  parser.add_argument("--early", help="Enable early stopping", action="store_true")
   args = parser.parse_args()
 
   # Hyperparameters
@@ -54,8 +55,9 @@ if __name__ == '__main__':
 
   # Setting Callbacks
   callbacks = [utils.checkpoint_callback(selected_model.name), 
-               utils.tensorboard_callback(selected_model.name),
-               utils.earlystopping_callback()]
+               utils.tensorboard_callback(selected_model.name)]
+  if args.early:
+    callbacks.append(utils.earlystopping_callback())
 
   if TRAIN:
     # Train model

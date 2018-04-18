@@ -70,10 +70,13 @@ class Classification:
     classifier = BatchNormalization()(classifier)
     classifier = UpSampling2D(size=(2, 2))(classifier)
     classifier = Conv2D(256, (3,3), activation='relu', padding='same')(classifier)
+    classifier = BatchNormalization()(classifier)
     classifier = UpSampling2D(size=(2, 2))(classifier)
     classifier = Conv2D(256, (3,3), activation='relu', padding='same')(classifier)
+    classifier = BatchNormalization()(classifier)
     classifier = UpSampling2D(size=(2, 2))(classifier)
     classifier = Conv2D(128, (3,3), activation='relu', padding='same')(classifier)
+    classifier = BatchNormalization()(classifier)
     classifier = UpSampling2D(size=(2, 2))(classifier)
 
     # C*I*E*A* layer
