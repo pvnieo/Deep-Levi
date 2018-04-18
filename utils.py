@@ -154,7 +154,6 @@ def save_sample(sample, input_type, directory, prefix, i, epochs, batch_size):
 
 
 def save_colored_samples(model, test_dir, steps, to_color, epochs, batch_size):
-  print("hahiya bent l9a7ba", test_dir[:-2  ])
   output = model.model.predict_generator(valid_generator(test_dir[:-2], model.target_size, batch_size, model.input_type), 
                                          steps=steps,
                                          verbose=1)
@@ -169,6 +168,7 @@ def save_colored_samples(model, test_dir, steps, to_color, epochs, batch_size):
 
   # Take the N first good and bad colorization
   zipped = list(zip(color_me, ground_truth, output)) # [(bw, gt, output)]
+  print("hahowa hna")
 
   to_be_saved = sorted(zipped, key=lambda x: np.sum(tf.keras.backend.eval(model.model.loss(ctt(x[2], dtype="float32"), ctt(x[1], dtype="float32")))))[:to_color]
   to_be_saved_bad = sorted(zipped, key=lambda x: np.sum(tf.keras.backend.eval(model.model.loss(ctt(x[2], dtype="float32"), ctt(x[1], dtype="float32")))))[-to_color:]
