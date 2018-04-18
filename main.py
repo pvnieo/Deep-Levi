@@ -55,7 +55,9 @@ if __name__ == '__main__':
 
   # Setting Callbacks
   callbacks = [utils.checkpoint_callback(selected_model.name), 
-               utils.tensorboard_callback(selected_model.name)]
+               utils.tensorboard_callback(selected_model.name), 
+               utils.reducelr_callback()]
+
   if args.early:
     callbacks.append(utils.earlystopping_callback())
 

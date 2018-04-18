@@ -221,6 +221,11 @@ def earlystopping_callback():
                              verbose=1)
   return early_stop
 
+def reducelr_callback():
+  reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2,
+                                patience=5, min_lr=0.001)
+  return reduce_lr
+
 def tensorboard_callback(name):
   directory = 'logs/' + name
   if not os.path.exists(directory):
