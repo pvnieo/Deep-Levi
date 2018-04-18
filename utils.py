@@ -6,7 +6,7 @@ import numpy as np
 from keras import losses
 from keras.models import model_from_json
 from keras.preprocessing.image import ImageDataGenerator, array_to_img, img_to_array, load_img
-from keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard, LearningRateScheduler
+from keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard, LearningRateScheduler, ReduceLROnPlateau
 from keras.utils import to_categorical as tc
 from skimage.color import rgb2lab, lab2rgb, rgb2gray
 from skimage.io import imsave
