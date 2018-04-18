@@ -80,8 +80,8 @@ def from_output_to_image(data, input_type):
     b_channel_classes = data[224:,:,:]
     a_channel_bin = np.apply_along_axis(np.argmax, -1, a_channel_classes)
     b_channel_bin = np.apply_along_axis(np.argmax, -1, b_channel_classes)
-    a_channel /=  63
-    b_channel /=  63
+    a_channel = a_channel_bin / 63
+    b_channel =  b_channel_bin / 63
     output = np.zeros(a_channel.shape + (2,))
     output[:,:,0] = a_channel
     output[:,:,1] = b_channel
