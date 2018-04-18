@@ -18,7 +18,7 @@ class Regression:
   def __init__(self, load, optimizer='adam', loss=losses.mean_squared_error):
     self.load_saved = load
     # We used the recommended parameters
-    self.optimizer = optimizers.Adadelta(lr=1.0, rho=0.95, epsilon=None, decay=0.0)
+    self.optimizer = optimizers.Adadelta(lr=0.1, rho=0.95, epsilon=None, decay=0.0)
     self.loss = loss
     self.target_size = (256, 256)
     self.name = "regression"
