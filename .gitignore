@@ -1,5 +1,11 @@
 saved_models/
 datasets/
+color_me/classification/
+color_me/regression/
+color_me/naive/
+logs/classification/
+logs/regression/
+logs/naive/
 levi_test/
 # Byte-compiled / optimized / DLL files
 __pycache__/

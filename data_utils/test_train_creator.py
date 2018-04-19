@@ -15,7 +15,6 @@ if not os.path.exists(TEST_DESTINATION):
 files = os.listdir('.')
 print(files)
 shuffle(files)
-# print(sorted(files))
 files.remove('test_train_creator.py')
 
 files.remove(TRAIN_DESTINATION[:-3])

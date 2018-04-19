@@ -33,7 +33,6 @@ def load_data(directory):
   # Load images (train + test)
   train_set = np.array([img_to_array(load_img(PATH_TO_TRAIN  + x)) for x in os.listdir(PATH_TO_TRAIN)], dtype=float)
   test_set = np.array([img_to_array(load_img(PATH_TO_TEST  + x)) for x in os.listdir(PATH_TO_TEST)], dtype=float)
-  print("7ad hna mezyane", train_set.shape)
   # Data normalisation
   train_set *= 1.0/255
   test_set *= 1.0/255
@@ -116,7 +115,6 @@ def train_generator(train_dir, target_size, batch_size, input_type):
 
 def valid_generator(train_dir, target_size, batch_size, input_type):
   datagen = ImageDataGenerator(rescale=1./255)
-  print("taille dyal retourn gen", train_dir)
   for batch in datagen.flow_from_directory(train_dir, target_size=target_size, class_mode=None, batch_size=batch_size, shuffle=False):
       lab_channel = rgb2lab(batch)
       l_channel = lab_channel[:,:,:,0]
@@ -152,6 +150,8 @@ def save_sample(sample, input_type, directory, prefix, i, epochs, batch_size):
   imsave("{}/{}gt{}_{}e_{}bz.png".format(directory, prefix, str(i), epochs, batch_size), lab2rgb(gt))
   imsave("{}/{}pred{}_{}e_{}bz.png".format(directory, prefix, str(i), epochs, batch_size), lab2rgb(pred))
 
+def pred(model, test_dir, steps, to_color, epochs, batch_size):
+    pass
 
 def save_colored_samples(model, test_dir, steps, to_color, epochs, batch_size):
   output = model.model.predict_generator(valid_generator(test_dir[:-2], model.target_size, batch_size, model.input_type), 
@@ -168,7 +168,6 @@ def save_colored_samples(model, test_dir, steps, to_color, epochs, batch_size):
 
   # Take the N first good and bad colorization
   zipped = list(zip(color_me, ground_truth, output)) # [(bw, gt, output)]
-  print("hahowa hna")
 
   to_be_saved = sorted(zipped, key=lambda x: np.sum(tf.keras.backend.eval(model.model.loss(ctt(x[2], dtype="float32"), ctt(x[1], dtype="float32")))))[:to_color]
   to_be_saved_bad = sorted(zipped, key=lambda x: np.sum(tf.keras.backend.eval(model.model.loss(ctt(x[2], dtype="float32"), ctt(x[1], dtype="float32")))))[-to_color:]

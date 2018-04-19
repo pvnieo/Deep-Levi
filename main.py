@@ -71,15 +71,6 @@ if __name__ == '__main__':
                                                                                           BATCH_SIZE, selected_model.input_type), 
                                                  validation_steps = STEPS_PER_EPOCHS_VALID, 
                                                  epochs=EPOCHS)
-  
-  # print(history.history)
-
-  # Save model
-  # if LOAD and SAVE: # We don't save the new weights if we didn't load
-  #   utils.save_model(selected_model)
-
-  # Get test data
-  #Xtest, Ytest = utils.get_test_data(test_set, selected_model.input_type)
 
   # Printing generalisation loss
   # print("====> Generalisation loss: ", selected_model.model.evaluate(Xtest, Ytest, batch_size=BATCH_SIZE))

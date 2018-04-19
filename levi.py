@@ -35,7 +35,8 @@ if __name__ == '__main__':
   files =  [f for f in os.listdir(to_color_dir) if isfile(join(to_color_dir, f))]
   
   for i, file in enumerate(files):
-    to_predict = np.array(img_to_array(load_img(to_color_dir + "/" + file)), dtype=float) * 1/255
+    to_predict = np.array(img_to_array(load_img(to_color_dir + "/" + file)), dtype=float) 
+    to_predict = to_predict * 1/255
     output = np.zeros(to_predict.shape)
     to_predict = rgb2lab(to_predict)
     output[:,:,0] = to_predict[:,:,0]
@@ -43,13 +44,9 @@ if __name__ == '__main__':
     to_predict = np.expand_dims(to_predict, axis=0)
     predicted = selected_model.model.predict(to_predict)
     ab = utils.from_output_to_image(predicted, selected_model.input_type)[0]
-    print("maybe", np.max(ab[0] - to_predict[0]))
-    # print("mok", utils.from_output_to_image(predicted, selected_model.input_type)[0].shape)
     output[:,:,1] = np.clip(ab[:,:,0], -127, 128)
     output[:,:,2] = np.clip(ab[:,:,1], -128, 127)
-    print("chno", np.max(output[:,:,1]))
     imsave("{}/{}/pred_{}.png".format(to_color_dir, selected_model.name, file), lab2rgb(output))
-  # utils.save_colored_samples(selected_model, to_color_dir+"/1", 1, 3, 500, 1)
 
 
 
