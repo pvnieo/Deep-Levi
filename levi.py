@@ -14,7 +14,7 @@ from skimage.io import imsave
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description="An implementation of multiple approachs to automatically colorize grey-scale images")
   parser.add_argument("-m", "--model", help="Colorization model", type=str, default="naive", choices=["naive", "reg", "classif"])
-  parser.add_argument('-d', '--data-dir',   required=False, default="levi_test",help='Directory where data is')
+  parser.add_argument('-d', '--data-dir',   required=False, default="levi_test",help='Directory where the images to be colored is')
   args = parser.parse_args()
 
   LOAD = True
