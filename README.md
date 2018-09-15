@@ -5,6 +5,9 @@ Implementation of some automatic colorization models using deep neural network:
 2.  Implementation of a classification-based model  inspired in part by Zhang et al. in "Colorful Image Colorization"  [[Link to the original paper](https://github.com/richzhang/colorization)] and R.Dah in [here](http://tinyclouds.org/colorize)
 3.  Implementation of a regression-based model inspired from [this Medium blog article](https://medium.freecodecamp.org/colorize-b-w-photos-with-a-100-line-neural-network-53d9b4449f8d)
 
+## Project report
+You can consult the project report [here](https://github.com/pvnieo/Deep-Levi/blob/master/%C3%89tude%20comparative%20d%E2%80%99architecture%20de%20colorisation%20automatique.pdf) (in French)
+
 ## Installation
 
 This project runs on python >= 3.6, use pip to install dependencies:
