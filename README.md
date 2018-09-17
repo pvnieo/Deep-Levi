@@ -12,7 +12,7 @@ You can consult the project report [here](https://github.com/pvnieo/Deep-Levi/bl
 
 This project runs on python >= 3.6, use pip to install dependencies:
 
-```python
+```
 pip3 install -r requirements.txt
 ```
 
@@ -20,7 +20,7 @@ pip3 install -r requirements.txt
 
 Use the `main.py` script to choose the model to train and the parameters to use
 
-```python
+```
 usage: main.py [-h] [-m {naive,reg,classif}] [-d DATA_DIR] [-e EPOCHS]
                [-b BATCH_SIZE] [-tc TO_COLOR] [--no-load] [--no-save]
                [--no-train] [--early]
@@ -48,7 +48,7 @@ optional arguments:
 
 Use the `levi.py` script to color images using a model
 
-```python
+```
 usage: levi.py -h [-d DATA_DIR]
 
 An implementation of multiple approachs to automatically colorize grey-scale
